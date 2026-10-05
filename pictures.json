@@ -1,6 +1,6 @@
 {
  "v": 1,
- "version": "dbd3a0c5a861",
+ "version": "6bfd0a484091",
  "fresh": "1791204574480",
  "pictures": [
   {
@@ -13,6 +13,12 @@
    "id": "l7fe13136d5d",
    "kind": "logo",
    "url": "https://media.discordapp.net/attachments/1113509248765264073/1556000809462800464/image.png?backend=b2&ex=6ac3e3ae&is=6ac2922e&hm=f345c58792304b238e4b0c9935a4be741e52e0b501f584695612de066e7a4d9f&=&format=webp&quality=lossless&width=1280&height=721",
+   "order": 0
+  },
+  {
+   "id": "l925b3a8e0ed",
+   "kind": "logo",
+   "url": "https://cdn.discordapp.com/icons/1090659205721112697/674b227bf7b59cd765bd7d38a428cbb8.png?size=256",
    "order": 0
   },
   {
