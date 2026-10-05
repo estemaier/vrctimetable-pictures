@@ -1,6 +1,6 @@
 {
  "v": 1,
- "version": "6bfd0a484091",
+ "version": "8d2787a14c1a",
  "fresh": "1791204574480",
  "pictures": [
   {
@@ -38,6 +38,12 @@
    "kind": "poster",
    "url": "https://media.discordapp.net/attachments/1327872346220003330/1547280269562876004/69696.png?ex=6ac3ce0b&is=6ac27c8b&hm=ab76ed586a9c25883fa1011c8ad1e905c34bf7e931ae574ba1ee548d63a0db40&=&format=webp&quality=lossless&width=1280&height=721",
    "order": 29853525
+  },
+  {
+   "id": "pc986087617f",
+   "kind": "poster",
+   "url": "https://cdn.discordapp.com/guild-events/1556663815058362450/2939a4b9ef7a0aeac5ed753f83b90b97.png?size=1024",
+   "order": 29853540
   }
  ]
 }
