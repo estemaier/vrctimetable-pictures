@@ -1,0 +1,55 @@
+# VRCTimetable Discord robot (written into your picture repository by the VRCTimetable sheet).
+# When the sheet asks (each time it publishes), this reads the scheduled events of the Discord
+# servers that have your bot (tools/fetch_discord.py) and puts them on this repository's branch
+# "discord" (one commit, replaced only when something changed). The sheet reads them from there.
+# The bot's key is the repository secret DISCORD_BOT_TOKEN (Settings ▸ Secrets and variables ▸
+# Actions); it is never printed. Free for public repositories. Do not rename this file.
+name: VRCTimetable Discord
+
+on:
+  repository_dispatch:
+    types: [vrctimetable-discord]
+  push:
+    paths:
+      - tools/fetch_discord.py
+      - .github/workflows/vrctimetable-discord.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vrctimetable-discord
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: The last result
+        run: |
+          mkdir -p prev
+          if git fetch --quiet --depth=1 origin discord; then git archive FETCH_HEAD | tar -x -C prev; fi
+      # This repository is public: events are read only for the servers the sheet says are shown, and
+      # events waiting for an OK or hidden go out with name and dates only. The lists come in as
+      # environment values (never into a shell line).
+      - name: Read Discord
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_DISPATCHED: ${{ github.event_name == 'repository_dispatch' }}
+          DISCORD_SERVERS: ${{ github.event.client_payload.servers }}
+          DISCORD_ASK: ${{ github.event.client_payload.ask }}
+          DISCORD_HIDDEN: ${{ github.event.client_payload.hidden }}
+          DISCORD_APPROVED: ${{ github.event.client_payload.approved }}
+        run: python3 tools/fetch_discord.py out prev
+      - name: Put the events on the branch "discord" (only when they changed)
+        run: |
+          if cmp -s out/discord.json prev/discord.json; then echo "No change."; exit 0; fi
+          cd out
+          git init --quiet
+          git checkout --quiet -b discord
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet -m "Discord events"
+          git push --quiet --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" discord
