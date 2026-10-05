@@ -1,6 +1,7 @@
 # VRCTimetable picture robot (written into your picture repository by the VRCTimetable sheet).
-# Every time the sheet publishes a new picture list (pictures.json), this builds the picture packs
-# (tools/build_packs.py) and publishes them as this repository's GitHub Pages site, where
+# Every time the sheet publishes a new picture list (pictures.json), this makes the picture packs
+# (tools/build_packs.py) and puts them on this repository's branch "packs" (one commit, replaced
+# each run). The sheet then copies new or changed packs into your schedule's gist, where
 # VRCTimetable boards download them. Free for public repositories. Do not rename this file.
 name: VRCTimetable pictures
 
@@ -13,9 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: vrctimetable-pictures
@@ -26,22 +25,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # The last run's pictures are kept (not downloaded again, safe from expired links) and stay
+      # in their packs, so the gist gets only what changed.
+      - name: The last run's packs
+        run: |
+          mkdir -p prev
+          if git fetch --quiet --depth=1 origin packs; then git archive FETCH_HEAD | tar -x -C prev; fi
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install --quiet pillow numpy
-      # The pictures the site already serves are kept (not downloaded again, safe from expired links).
-      - run: python tools/build_packs.py pictures.json site "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - run: python tools/build_packs.py pictures.json site prev
+      - name: Put the packs on the branch "packs"
+        run: |
+          cd site
+          git init --quiet
+          git checkout --quiet -b packs
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet -m "Picture packs"
+          git push --quiet --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" packs
