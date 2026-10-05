@@ -1,37 +1,6 @@
 {
  "v": 1,
- "version": "c15486d71803",
- "fresh": "1791174066146",
- "pictures": [
-  {
-   "id": "l49cf1e7e0c9",
-   "kind": "logo",
-   "url": "https://media.discordapp.net/attachments/666308166899859466/1556441797981634681/20261004015832_1.jpg?backend=b2&ex=6ac42ce1&is=6ac2db61&hm=0d9ba160e00c0b01179ee4803f409bef49995eab530756a3c397a31b4a8211a0&=&format=webp",
-   "order": 0
-  },
-  {
-   "id": "l7fe13136d5d",
-   "kind": "logo",
-   "url": "https://media.discordapp.net/attachments/1113509248765264073/1556000809462800464/image.png?backend=b2&ex=6ac3e3ae&is=6ac2922e&hm=f345c58792304b238e4b0c9935a4be741e52e0b501f584695612de066e7a4d9f&=&format=webp&quality=lossless&width=1280&height=721",
-   "order": 0
-  },
-  {
-   "id": "p53e04dbb920",
-   "kind": "poster",
-   "url": "https://media.discordapp.net/attachments/1327872346220003330/1547280269562876004/69696.png?ex=6ac3ce0b&is=6ac27c8b&hm=ab76ed586a9c25883fa1011c8ad1e905c34bf7e931ae574ba1ee548d63a0db40&=&format=webp&quality=lossless&width=1280&height=721",
-   "order": 29852570
-  },
-  {
-   "id": "p855600898f3",
-   "kind": "poster",
-   "url": "https://media.discordapp.net/attachments/1327872346220003330/1553040845744119948/luupy.png?ex=6ac453bf&is=6ac3023f&hm=c67109dae77e9c54a6308e6c955da7e23840514ca232e76c5b0a288331c725e7&=&format=webp&quality=lossless&width=1280&height=721",
-   "order": 29852570
-  },
-  {
-   "id": "p23b01237cbf",
-   "kind": "poster",
-   "url": "https://media.discordapp.net/attachments/1327872346220003330/1552393732828045402/rab111.png?ex=6ac3f353&is=6ac2a1d3&hm=2d3f586f3a735ec03506021d411fb74ae8f713732cdb8079d42333f8b9919231&=&format=webp&quality=lossless&width=640&height=360",
-   "order": 29852610
-  }
- ]
+ "version": "stopped",
+ "fresh": "1791204574480",
+ "pictures": []
 }
