@@ -1,0 +1,19 @@
+{
+ "v": 1,
+ "version": "f927551d827c",
+ "fresh": "",
+ "pictures": [
+  {
+   "id": "l49cf1e7e0c9",
+   "kind": "logo",
+   "url": "https://media.discordapp.net/attachments/666308166899859466/1556441797981634681/20261004015832_1.jpg?backend=b2&ex=6ac42ce1&is=6ac2db61&hm=0d9ba160e00c0b01179ee4803f409bef49995eab530756a3c397a31b4a8211a0&=&format=webp",
+   "order": 0
+  },
+  {
+   "id": "lcc6dac0aeb0",
+   "kind": "logo",
+   "url": "https://www.deepl.com",
+   "order": 0
+  }
+ ]
+}
