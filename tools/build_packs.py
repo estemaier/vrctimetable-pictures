@@ -7,24 +7,29 @@ picture downloads, so picture prefabs in the same world are not slowed down) and
 GPU-compressed textures (DXT1 for posters, DXT5 for logos: about 6x less video memory than plain
 pictures).
 
-Runs in GitHub Actions in the organiser's own GitHub account (workflow vrctimetable-pictures.yml)
-and locally for tests:
-    python build_packs.py pictures.json out_folder [site]
-  site: the address the packs are published at (…/vrctimetable-pictures/): pictures it already serves
-  are kept instead of downloaded again (also when their link has stopped working), unless the list
-  asks for a fresh run ("fresh" differs from the one the site was made with) or the sizes changed.
+Runs in GitHub Actions in the organiser's own GitHub account (workflow vrctimetable-pictures.yml),
+which pushes the output folder to the repository's branch "packs" (one commit, replaced each run);
+the VRCTimetable sheet then copies new or changed files into the schedule's own gist, where boards
+read them — the same address as the schedule, so pictures reach everyone the schedule reaches
+(GitHub Pages is blocked by some internet providers). Locally for tests:
+    python build_packs.py pictures.json out_folder [previous_folder]
+  previous_folder: the last run's output (the "packs" branch): pictures made then are kept instead of
+  downloaded again (also when their link has stopped working — links copied from Discord expire),
+  unless the list asks for a fresh run ("fresh" differs) or the sizes changed; and every picture
+  keeps the pack it was in, so a change rewrites only the packs it touches (the gist keeps every
+  version of its files, so it grows only by those).
 
 pictures.json:
     {"v": 1, "version": "<the sheet's hash of this list>", "fresh": "<stamp of the last 'make again'>",
      "pictures": [{"id": "p0123456789", "kind": "poster" | "logo", "url": "https://...", "order": 29849040}, ...]}
-  order = the event's start (Unix minutes) for posters: posters near each other in time share packs.
+  order = the event's start (Unix minutes) for posters: new posters are packed in time order.
 
-Output, one folder (published as the GitHub Pages site):
+Output, one folder:
     index.json                    which pack holds which picture (the board reads it first, and again
                                   when the schedule names pictures it does not know; the sheet reads
-                                  it to report broken pictures)
-    pack-00.txt ... pack-15.txt   the packs; the logos come first (pack-00), then the posters by time
-    .nojekyll                     Pages: serve the files as they are
+                                  it to report broken pictures and to see which packs changed)
+    pack-00.txt ... pack-15.txt   the packs; on a first run the logos come first (pack-00), then the
+                                  posters by time; later runs keep everything where it was
 
 index.json: {"v": 1, "version": <pictures.json version>, "fresh": <its stamp>, "shape": <sizes used>,
              "packs": count, "where": {id: pack}, "sizes": {id: [w, h]}, "versions": [hash of each pack],
@@ -291,7 +296,7 @@ def expected_size(w, h, fmt):
     return sum(max(1, (mw + 3) // 4) * max(1, (mh + 3) // 4) * block for (mw, mh) in mip_sizes(w, h))
 
 
-# ---------------------------------------------------------------- the pictures the site already serves
+# ---------------------------------------------------------------- the last run's pictures
 
 SHAPE = "p%d-l%d-dxt" % (POSTER_MAX, LOGO_SIZE)   # pictures made with other sizes are made again
 
@@ -305,24 +310,26 @@ def read_pack(text):
     return json.loads(text[nl + 1:nl + 1 + hl]), nl + 1 + hl
 
 
-def load_previous(site, fetcher=fetch, log=print):
+def load_previous(folder, fetcher=fetch, log=print):
     """
-    The pictures the site serves now, by id → (kind, w, h, fmt, mips, base64 block), and the index's
-    "fresh" stamp; ({}, None) when there is no site yet. Pictures already made are not downloaded
-    again — and stay when their link stops working (links copied from Discord expire).
+    The last run's output (a folder, or an address ending in "/"): its pictures by id →
+    (kind, w, h, fmt, mips, base64 block), its "fresh" stamp and where each picture was
+    (id → pack); ({}, None, {}) when there is none.
     """
     try:
-        index = json.loads(fetcher(site + "index.json").decode("utf-8"))
+        index = json.loads(fetcher(os.path.join(folder, "index.json") if os.path.isdir(folder) else folder + "index.json").decode("utf-8"))
     except Exception:
-        return {}, None
+        return {}, None, {}
+    where = {k: int(v) for k, v in index.get("where", {}).items()}
     if index.get("shape") != SHAPE:
-        log("the site's pictures were made with other sizes: every picture is made again")
-        return {}, None
+        log("the last run's pictures were made with other sizes: every picture is made again")
+        return {}, None, where
     status = index.get("status", {})
     kept = {}
     for n in range(int(index.get("packs", 0))):
+        name = "pack-%02d.txt" % n
         try:
-            text = fetcher(site + "pack-%02d.txt" % n).decode("ascii")
+            text = fetcher(os.path.join(folder, name) if os.path.isdir(folder) else folder + name).decode("ascii")
             header, body = read_pack(text)
         except Exception:
             continue
@@ -332,24 +339,75 @@ def load_previous(site, fetcher=fetch, log=print):
             b64 = text[body + e["at"]: body + e["at"] + e["len"]]
             if status.get(e["id"]) == "ok" and len(b64) == e["len"]:
                 kept[e["id"]] = (e["kind"], e["w"], e["h"], e["fmt"], e["mips"], b64)
-    return kept, index.get("fresh")
+    return kept, index.get("fresh"), where
+
+
+def assign_packs(ready, prev_where):
+    """
+    Pictures keep the pack they were in (they fitted together then), so a change rewrites only the
+    packs it touches; the others fill the first pack with room — logos first, then posters by time
+    (on a first run: the logos in pack 0, then the posters in time order). An emptied pack in the
+    middle stays (the others keep their numbers); empty ones at the end go. Within a pack the
+    pictures are in id order, so its text depends only on which pictures it holds.
+    Returns (packs, ids that found no room).
+    """
+    packs = []
+    used = []
+
+    def grow(n):
+        while len(packs) <= n:
+            packs.append([])
+            used.append(0)
+
+    later = []
+    for r in ready:
+        n = prev_where.get(r[2])
+        if n is not None and 0 <= n < MAX_PACKS:
+            grow(n)
+            if used[n] + r[9] <= PACK_BUDGET:
+                packs[n].append(r)
+                used[n] += r[9]
+                continue
+        later.append(r)
+    later.sort(key=lambda r: (r[0], r[1], r[2]))
+    noroom = []
+    for r in later:
+        for n in range(len(packs)):
+            if used[n] + r[9] <= PACK_BUDGET:
+                packs[n].append(r)
+                used[n] += r[9]
+                break
+        else:
+            if len(packs) < MAX_PACKS:
+                packs.append([r])
+                used.append(r[9])
+            else:
+                noroom.append(r[2])
+    while packs and not packs[-1]:
+        packs.pop()
+    if not packs:
+        packs = [[]]
+    for p in packs:
+        p.sort(key=lambda r: r[2])
+    return packs, noroom
 
 
 # ---------------------------------------------------------------- packing
 
 def build(pictures_json, out_dir, fetcher=fetch, log=print, previous=None):
-    """previous: the site's address (…/vrctimetable-pictures/): pictures it already serves are kept."""
+    """previous: the last run's output (folder or address): its pictures are kept, and where they were."""
     if os.path.exists(pictures_json):
         with open(pictures_json, "r", encoding="utf-8") as f:
             spec = json.load(f)
-    else:   # the repository before the sheet's first picture list: an empty site, not a failed run
+    else:   # the repository before the sheet's first picture list: an empty output, not a failed run
         spec = {"v": 1, "version": "", "pictures": []}
     version = str(spec.get("version", ""))
     fresh = str(spec.get("fresh", "") or "")   # the sheet's "Make the pictures again": nothing is kept
     items = spec.get("pictures", [])
     kept = {}
+    prev_where = {}
     if previous:
-        kept, prev_fresh = load_previous(previous, fetcher, log)
+        kept, prev_fresh, prev_where = load_previous(previous, fetcher, log)
         if kept and (prev_fresh or "") != fresh:
             log("a fresh run was asked for: every picture is made again")
             kept = {}
@@ -385,19 +443,9 @@ def build(pictures_json, out_dir, fetcher=fetch, log=print, previous=None):
             status[pid] = msg
             log("FAIL  %-12s %-6s %s  <- %s" % (pid, kind, msg, url[:80]))
 
-    # Logos first (pack 0), then posters in time order; a pack closes at the budget.
-    ready.sort(key=lambda r: (r[0], r[1], r[2]))
-    packs = [[]]
-    size = 0
-    for r in ready:
-        if packs[-1] and size + r[9] > PACK_BUDGET:
-            if len(packs) >= MAX_PACKS:
-                status[r[2]] = "noroom|more pictures than %d packs hold" % MAX_PACKS
-                continue
-            packs.append([])
-            size = 0
-        packs[-1].append(r)
-        size += r[9]
+    packs, noroom = assign_packs(ready, prev_where)
+    for pid in noroom:
+        status[pid] = "noroom|more pictures than %d packs hold" % MAX_PACKS
 
     def pack_text(n, entries):
         header = {"v": 1, "pack": n, "pictures": []}
@@ -426,7 +474,6 @@ def build(pictures_json, out_dir, fetcher=fetch, log=print, previous=None):
             f.write(t)
     with open(os.path.join(out_dir, "index.json"), "w", encoding="utf-8") as f:
         json.dump(index, f, ensure_ascii=False, indent=1)
-    open(os.path.join(out_dir, ".nojekyll"), "w").close()
     log("%d pictures in %d packs (%s), %d problems" % (len(where), len(packs),
         ", ".join("%.1f MB" % (len(t) / 1e6) for t in texts), sum(1 for s in status.values() if s != "ok")))
     return index
