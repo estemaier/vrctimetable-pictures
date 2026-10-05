@@ -1,0 +1,47 @@
+# VRCTimetable picture robot (written into your picture repository by the VRCTimetable sheet).
+# Every time the sheet publishes a new picture list (pictures.json), this builds the picture packs
+# (tools/build_packs.py) and publishes them as this repository's GitHub Pages site, where
+# VRCTimetable boards download them. Free for public repositories. Do not rename this file.
+name: VRCTimetable pictures
+
+on:
+  push:
+    paths:
+      - pictures.json
+      - tools/build_packs.py
+      - .github/workflows/vrctimetable-pictures.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: vrctimetable-pictures
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pillow numpy
+      # The pictures the site already serves are kept (not downloaded again, safe from expired links).
+      - run: python tools/build_packs.py pictures.json site "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
