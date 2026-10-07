@@ -53,6 +53,7 @@ import math
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -67,6 +68,8 @@ PACK_BUDGET = 2_000_000     # raw picture bytes per pack (the text is 4/3 of it)
 MAX_PACKS = 16              # the board knows this many pack links (VRCUrls fixed at upload)
 MAX_DOWNLOAD = 25 * 1024 * 1024
 MAX_SOURCE_PIXELS = 40_000_000
+PICTURE_FORMATS = ["JPEG", "PNG", "WEBP", "GIF"]   # only these are decoded (no EPS, which would start Ghostscript)
+DOWNLOAD_SECONDS = 60       # one picture's whole download: a server that answers very slowly cannot hold up the others
 USER_AGENT = "VRCTimetable-picture-robot/1.0 (+https://tektinok-ltd.booth.pm)"
 DXT1, DXT5 = 1, 5
 
@@ -95,9 +98,21 @@ def fetch(url):
         with open(url, "rb") as f:
             return f.read(MAX_DOWNLOAD + 1)
     req = urllib.request.Request(direct_link(url), headers={"User-Agent": USER_AGENT, "Accept": "image/*,*/*;q=0.5"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        data = r.read(MAX_DOWNLOAD + 1)
-    return data
+    deadline = time.monotonic() + DOWNLOAD_SECONDS
+    chunks = []
+    size = 0
+    with urllib.request.urlopen(req, timeout=20) as r:
+        # In pieces, against a deadline: the timeout above is per read, and a server sending one byte
+        # every few seconds would otherwise keep the whole run waiting.
+        while size <= MAX_DOWNLOAD:
+            if time.monotonic() > deadline:
+                raise ValueError("download|too slow (over %d s)" % DOWNLOAD_SECONDS)
+            chunk = r.read(65536)
+            if not chunk:
+                break
+            chunks.append(chunk)
+            size += len(chunk)
+    return b"".join(chunks)
 
 
 def open_picture(data):
@@ -105,7 +120,15 @@ def open_picture(data):
         raise ValueError("filesize|over 25 MB")
     Image.MAX_IMAGE_PIXELS = MAX_SOURCE_PIXELS
     try:
-        img = Image.open(io.BytesIO(data))
+        img = Image.open(io.BytesIO(data), formats=PICTURE_FORMATS)
+    except Image.DecompressionBombError:
+        raise ValueError("toolarge|over 40 megapixels")
+    except Exception:
+        raise ValueError("notpicture|JPG, PNG, WebP or GIF expected")
+    # Pillow refuses only twice its limit (up to that it just warns): the limit is checked here.
+    if img.size[0] * img.size[1] > MAX_SOURCE_PIXELS:
+        raise ValueError("toolarge|over 40 megapixels")
+    try:
         img.seek(0)                      # GIF / WebP: the first frame
         img = ImageOps.exif_transpose(img)
         img.load()
