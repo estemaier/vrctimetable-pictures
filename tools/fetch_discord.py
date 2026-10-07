@@ -168,18 +168,25 @@ def allowed_servers(text):
 
 
 def approved_versions(text):
-    """DISCORD_APPROVED ("<event id>:<12 hex>,…") → {event id: version the organiser said OK to}."""
+    """DISCORD_APPROVED ("<event id>:<64 hex>,…") → {event id: version the organiser said OK to}."""
     out = {}
     for part in (text or '').split(','):
         bits = part.strip().split(':')
-        if len(bits) == 2 and bits[0].isdigit() and 5 <= len(bits[0]) <= 25 and len(bits[1]) == 12 and all(c in '0123456789abcdef' for c in bits[1]):
+        if len(bits) == 2 and bits[0].isdigit() and 5 <= len(bits[0]) <= 25 and len(bits[1]) == 64 and all(c in '0123456789abcdef' for c in bits[1]):
             out[bits[0]] = bits[1]
     return out
 
 
 def version_of(ev):
-    """The same short hash the sheet keeps for an OK (sha1 of name|description|image|location, 12 hex)."""
-    return hashlib.sha1('|'.join([ev['name'], ev['description'], ev['image'], ev['location']]).encode('utf-8')).hexdigest()[:12]
+    """
+    The hash the sheet keeps for an OK (its discordVersion_): SHA-256 over the SHA-256 of each of name,
+    description, image and location, 64 hex. Each field on its own, so text cannot move between fields
+    unseen; the whole digest, so nobody can search for a harmless and a hostile text with the same
+    version (12 hex digits, until 2026-10-07, could be matched in seconds).
+    """
+    parts = ''.join(hashlib.sha256(str(ev.get(k) or '').encode('utf-8', 'replace')).hexdigest()
+                    for k in ('name', 'description', 'image', 'location'))
+    return hashlib.sha256(parts.encode('ascii')).hexdigest()
 
 
 def only_what_approval_needs(ev, flag):
