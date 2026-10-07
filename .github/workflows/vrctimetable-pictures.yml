@@ -23,8 +23,13 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # A picture's download has its own limit; this one stops a run that hangs anyway (GitHub's own is 6 h).
+    timeout-minutes: 20
     steps:
+      # No key left on disk for the steps that read other people's pictures (the push below brings its own).
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       # The last run's pictures are kept (not downloaded again, safe from expired links) and stay
       # in their packs, so the gist gets only what changed.
       - name: The last run's packs
