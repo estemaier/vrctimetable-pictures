@@ -27,7 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      # No key left on disk for the step that reads Discord's texts (the push below brings its own).
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: The last result
         run: |
           mkdir -p prev
