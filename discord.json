@@ -1,0 +1,61 @@
+{
+ "v": 1,
+ "status": "ok",
+ "bot": {
+  "id": "1556653291226664970",
+  "name": "VRCT_Herald"
+ },
+ "servers": [
+  {
+   "id": "1090659205721112697",
+   "name": "tekitonik hut",
+   "icon": "674b227bf7b59cd765bd7d38a428cbb8",
+   "read": true,
+   "status": "ok",
+   "events": [
+    {
+     "id": "1557107368763072633",
+     "name": "Solid Danny",
+     "description": "A wild description of an awesome event",
+     "start": "2026-10-13T20:00:00+00:00",
+     "end": "2026-10-14T01:00:00+00:00",
+     "status": 1,
+     "type": 3,
+     "location": "Kirgizstan",
+     "channel": "",
+     "image": "0b974922bf6f070248947e925f4d239e",
+     "rule": {
+      "start": "2026-10-06T20:00:00+00:00",
+      "frequency": 2,
+      "interval": 1,
+      "by_weekday": [
+       1
+      ]
+     },
+     "exceptions": []
+    },
+    {
+     "id": "1557123768239915059",
+     "name": "Elimination of Dandruff",
+     "description": "scary https://www.reddit.com",
+     "start": "2026-10-13T21:00:00+00:00",
+     "end": "2026-10-13T23:00:00+00:00",
+     "status": 1,
+     "type": 3,
+     "location": "Ставрополь",
+     "channel": "",
+     "image": "90318defb1ce419e404387c345284c3e",
+     "rule": {
+      "start": "2026-10-13T21:00:00+00:00",
+      "frequency": 2,
+      "interval": 1,
+      "by_weekday": [
+       1
+      ]
+     },
+     "exceptions": []
+    }
+   ]
+  }
+ ]
+}
