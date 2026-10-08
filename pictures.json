@@ -1,18 +1,12 @@
 {
  "v": 1,
- "version": "c9ac1692e79d",
+ "version": "bdb31978b773",
  "fresh": "1791204574480",
  "pictures": [
   {
    "id": "l6f7f59e1153",
    "kind": "logo",
    "url": "https://media.discordapp.net/attachments/1090659207340105782/1557540700013203547/Booth_Logo.jpg?ex=6ac82c50&is=6ac6dad0&hm=8e39dc0e5b051a737e500c4105b69848162c57f3c6a05c87555cbb68d099d550&=&format=webp",
-   "order": 0
-  },
-  {
-   "id": "l925b3a8e0ed",
-   "kind": "logo",
-   "url": "https://cdn.discordapp.com/icons/1090659205721112697/674b227bf7b59cd765bd7d38a428cbb8.png?size=256",
    "order": 0
   },
   {
